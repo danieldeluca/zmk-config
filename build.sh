@@ -104,8 +104,9 @@ if [ ! -d .west ] || ! cmp -s /zmk-config/config/west.yml config/west.yml || [ "
   cp /zmk-config/config/west.yml config/west.yml
   [ -d .west ] || west init -l config
   west update --fetch-opt=--filter=tree:0
-  west zephyr-export
 fi
+# Registers Zephyr's CMake package in the container's home, which does not persist between runs
+west zephyr-export > /dev/null
 failed=()
 EOF
   for t in "${targets[@]}"; do
