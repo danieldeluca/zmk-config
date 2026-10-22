@@ -119,7 +119,28 @@ The build matrix is defined in `build.yaml`. Normal firmware uses the custom
 orientation; Sofle enables the 180-degree rotation in its board configuration.
 The central, left-side builds include ZMK Studio support.
 
-For a local build, first create a normal ZMK west workspace using the manifest
+### Local build with Docker
+
+`build.sh` builds the targets from `build.yaml` locally in the official
+`zmkfirmware/zmk-build-arm` Docker image, so no Zephyr SDK installation is
+needed. Docker must be running.
+
+```sh
+./build.sh                 # every target in build.yaml
+./build.sh sofle           # targets whose board or artifact name contains "sofle"
+./build.sh --no-reset sofle  # skip the settings_reset targets
+./build.sh --list corne    # show matching targets without building
+./build.sh --update        # refresh ZMK/Zephyr sources
+```
+
+Firmware is written to `firmware/<artifact-name>.uf2`. The first run downloads
+ZMK and Zephyr into the `zmk-workspace` Docker volume and takes several
+minutes; later builds reuse it. The workspace is refreshed automatically when
+`config/west.yml` changes.
+
+### Local build with west
+
+Without Docker, first create a normal ZMK west workspace using the manifest
 in `config/west.yml`. From the workspace root, run a command such as:
 
 ```sh
@@ -155,9 +176,40 @@ and the right half is the peripheral side.
    file.
 4. Reconnect the keyboard and pair it with the host if necessary.
 
-Enter the bootloader by double-pressing the physical reset button, or use the
-bootloader key in the active keymap. On the 5-column keymap, hold `Delete` and
-press `X`.
+### Entering the bootloader
+
+The bootloader is a small program that lets the computer copy new firmware
+onto a half. Flash each half on its own:
+
+1. Turn the half on and connect it to the computer with a USB-C cable. Only the
+   half being flashed needs to be connected.
+2. Enter the bootloader with one of these methods:
+   - **Reset button:** press the small physical reset button on that half
+     **twice quickly** (about half a second apart). A single press only
+     restarts the keyboard firmware.
+   - **Bootloader key:** press the `&bootloader` key in the active keymap.
+     It enters the bootloader on the half it is pressed on. In every default
+     keymap this key is on the left half, so it only works for the left half;
+     use the reset button for the right half.
+
+     | Keymap | Bootloader key (left half) |
+     | --- | --- |
+     | Corne / Piantor 6-column | Hold Lower (`NUMBER` layer), then press `V` |
+     | Corne / Piantor 5-column | Hold `Delete` (`ADJUST` layer), then press `X` |
+     | Sofle | None; use the reset button |
+
+3. A USB drive appears on the computer (in Finder on macOS). The keys and the
+   display stop responding while the half is in the bootloader; this is
+   expected.
+4. Copy the matching `.uf2` file onto that drive, by dragging it in Finder or
+   with `cp firmware/<file>.uf2 /Volumes/<drive-name>/`.
+5. The half restarts by itself as soon as the copy finishes and the drive
+   disappears. macOS may then report that the disk was not ejected properly.
+   This is normal and can be ignored.
+
+If no drive appears, check that the USB-C cable carries data (some cables are
+charge-only), try the double press again a little faster, and make sure the
+half is switched on.
 
 ### Resetting saved settings
 
@@ -229,6 +281,7 @@ Corne Choc Pro supports four encoder definitions:
 3. Previous/next media track
 4. Volume down/up
 
-Sofle Choc Pro uses one encoder for volume and the other for previous/next
-media track. The encoder actions are available on its default, Lower, and
-Raise layers.
+Sofle Choc Pro uses the right encoder for volume (push to mute). The left
+encoder selects the Bluetooth profile: hold its push button and rotate to
+switch to the previous/next profile, then release. Rotating the left encoder
+without holding the button does nothing.
