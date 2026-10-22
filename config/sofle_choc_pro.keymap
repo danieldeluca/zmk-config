@@ -10,11 +10,20 @@
 #include <dt-bindings/zmk/rgb.h>
 #include <dt-bindings/zmk/ext_power.h>
 
+// Each WIN_* layer sits directly above its macOS layer and only overrides the keys
+// that differ on the Windows "Belgian (Period)" layout. WIN is switched on automatically
+// while Bluetooth profile 2 is selected (CONFIG_ZMK_PROFILE_LAYER in sofle_choc_pro.conf).
 #define BASE 0
-#define LOWER 1
-#define RAISE 2
-#define ADJUST 3
-#define BTSEL 4
+#define WIN 1
+#define LOWER 2
+#define WIN_LOWER 3
+#define RAISE 4
+#define WIN_RAISE 5
+#define ADJUST 6
+#define BTSEL 7
+// New layers go at the end: inserting one renumbers the others, and bindings saved on the
+// keyboard (ZMK Studio) are stored by layer number. Otherwise run a settings reset after flashing.
+#define RGBSEL 8
 
 // ------------------------------------------------------------------------------------------------------------
 // macOS "French" (AZERTY) input source aliases.
@@ -94,6 +103,31 @@
 #define FR_COPY   LG(C)
 #define FR_PASTE  LG(V)
 
+// ------------------------------------------------------------------------------------------------------------
+// Windows "Belgian (Period)" (AZERTY) input source aliases, only for characters whose key differs
+// from macOS French. AltGr is the right Alt key.
+// ------------------------------------------------------------------------------------------------------------
+
+#define BE_LT     NUBS          // <
+#define BE_GT     LS(NUBS)      // >
+#define BE_PIPE   RA(N1)        // |
+#define BE_AT     RA(N2)        // @
+#define BE_HASH   RA(N3)        // #
+#define BE_LBRC   RA(N9)        // {
+#define BE_RBRC   RA(N0)        // }
+#define BE_LBKT   RA(LBKT)      // [
+#define BE_RBKT   RA(RBKT)      // ]
+#define BE_BSLH   RA(NUBS)      // backslash
+#define BE_TILD   RA(FSLH)      // ~ (dead key)
+#define BE_GRV    RA(BSLH)      // ` (dead key)
+#define BE_PND    LS(BSLH)      // £
+
+// Windows editing shortcuts (follow the French letters)
+#define BE_UNDO   LC(FR_Z)
+#define BE_CUT    LC(X)
+#define BE_COPY   LC(C)
+#define BE_PASTE  LC(V)
+
 / {
 
   behaviors {
@@ -110,14 +144,63 @@
       #sensor-binding-cells = <0>;
       bindings = <&none>, <&none>;
     };
+
+    // Windows: same key gives @, shifted # (like the macOS @ # key)
+    be_at_hash: be_at_hash {
+      compatible = "zmk,behavior-mod-morph";
+      #binding-cells = <0>;
+      bindings = <&kp BE_AT>, <&kp BE_HASH>;
+      mods = <(MOD_LSFT|MOD_RSFT)>;
+    };
+
+    // Windows: same key gives `, shifted £ (like the macOS ` £ key)
+    be_grv_pnd: be_grv_pnd {
+      compatible = "zmk,behavior-mod-morph";
+      #binding-cells = <0>;
+      bindings = <&kp BE_GRV>, <&kp BE_PND>;
+      mods = <(MOD_LSFT|MOD_RSFT)>;
+    };
+
+    // Right encoder while its push button is held: underglow brightness
+    rgb_brt: rgb_brightness {
+      compatible = "zmk,behavior-sensor-rotate";
+      #sensor-binding-cells = <0>;
+      bindings = <&rgb_ug RGB_BRD>, <&rgb_ug RGB_BRI>;
+    };
+
+    // Right encoder button: tap = mute, hold = RGBSEL layer
+    ht_rgb: hold_tap_rgb {
+      compatible = "zmk,behavior-hold-tap";
+      #binding-cells = <2>;
+      flavor = "hold-preferred";
+      tapping-term-ms = <200>;
+      bindings = <&mo>, <&kp>;
+    };
+
+    // Right encoder button: single tap/hold as above, double tap = underglow on/off
+    td_mute_rgb: tap_dance_mute_rgb {
+      compatible = "zmk,behavior-tap-dance";
+      #binding-cells = <0>;
+      tapping-term-ms = <200>;
+      bindings = <&ht_rgb RGBSEL C_MUTE>, <&rgb_ug RGB_TOG>;
+    };
   };
 
-  // Activate ADJUST layer by pressing raise and lower
   conditional_layers {
     compatible = "zmk,conditional-layers";
+    // Activate ADJUST layer by pressing raise and lower
     adjust_layer {
       if-layers = <LOWER RAISE>;
       then-layer = <ADJUST>;
+    };
+    // Windows variants of LOWER and RAISE while the WIN layer is on
+    win_lower_layer {
+      if-layers = <LOWER WIN>;
+      then-layer = <WIN_LOWER>;
+    };
+    win_raise_layer {
+      if-layers = <RAISE WIN>;
+      then-layer = <WIN_RAISE>;
     };
   };
 
@@ -127,20 +210,32 @@
     default_layer {
       display-name = "default";
       // ------------------------------------------------------------------------------------------------------------
-      // |  @ #  | & 1 | é 2 | " 3  | ' 4  | ( 5  |                   | § 6  | è 7   | ! 8   | ç 9  |  à 0  |  - _  |
+      // |  @ #  | & 1 | é 2 | " 3  | ' 4  | ( 5  |                   | § 6  | è 7   | ! 8   | ç 9  |  à 0  |  ) °  |
       // |  ESC  |  A  |  Z  |  E   |  R   |  T   |                   |  Y   |  U    |  I    |  O   |   P   | BKSPC |
       // |  TAB  |  Q  |  S  |  D   |  F   |  G   |                   |  H   |  J    |  K    |  L   |   M   |  ù %  |
-      // | SHIFT |  W  |  X  |  C   |  V   |  B   |  BTSEL |  | MUTE  |  N   |  , ?  |  ; .  |  : / |  = +  | SHIFT |
-      //               | GUI | ALT  | CTRL | LOWER|  ENTER |  | SPACE | RAISE| CTRL  | ALT   | GUI  |
+      // | SHIFT |  W  |  X  |  C   |  V   |  B   |  BTSEL |  |MUTE/RGB|  N   |  , ?  |  ; .  |  : / |  = +  | SHIFT |
+      //               | GUI | ALT  | CTRL | LOWER|  ENTER |  | SPACE | RAISE| CTRL  | ALT   | - _  |
       bindings = <
-        &kp FR_AT &kp FR_AMPS &kp FR_EACU &kp FR_DQUO &kp FR_APOS &kp FR_LPAR                       &kp FR_SECT &kp FR_EGRV  &kp FR_EXCL &kp FR_CCED  &kp FR_AGRV &kp FR_MINUS
+        &kp FR_AT &kp FR_AMPS &kp FR_EACU &kp FR_DQUO &kp FR_APOS &kp FR_LPAR                       &kp FR_SECT &kp FR_EGRV  &kp FR_EXCL &kp FR_CCED  &kp FR_AGRV &kp FR_RPAR
         &kp ESC   &kp FR_A    &kp FR_Z    &kp E       &kp R       &kp T                             &kp Y       &kp U        &kp I       &kp O        &kp P       &kp BSPC
         &kp TAB   &kp FR_Q    &kp S       &kp D       &kp F       &kp G                             &kp H       &kp J        &kp K       &kp L        &kp FR_M    &kp FR_UGRV
-        &kp LSHFT &kp FR_W    &kp X       &kp C       &kp V       &kp B   &mo BTSEL  &kp C_MUTE     &kp N       &kp FR_COMMA &kp FR_SEMI &kp FR_COLON &kp FR_EQUAL &kp RSHFT
-        &kp LGUI &kp LALT &kp LCTRL &mo LOWER  &kp RET    &kp SPACE  &mo RAISE  &kp RCTRL &kp RALT  &kp RGUI
+        &kp LSHFT &kp FR_W    &kp X       &kp C       &kp V       &kp B   &mo BTSEL  &td_mute_rgb   &kp N       &kp FR_COMMA &kp FR_SEMI &kp FR_COLON &kp FR_EQUAL &kp RSHFT
+        &kp LGUI &kp LALT &kp LCTRL &mo LOWER  &kp RET    &kp SPACE  &mo RAISE  &kp RCTRL &kp RALT  &kp FR_MINUS
       >;
 
       sensor-bindings = <&rot_none &inc_dec_kp C_VOL_DN C_VOL_UP>;
+    };
+
+    win_layer {
+      display-name = "win";
+      // Windows Belgian overrides of default: @ # key (left of & 1)
+      bindings = <
+        &be_at_hash     &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans
+        &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      >;
     };
 
     lower_layer {
@@ -162,6 +257,18 @@
       sensor-bindings = <&rot_none &inc_dec_kp C_VOL_DN C_VOL_UP>;
     };
 
+    win_lower_layer {
+      display-name = "win lower";
+      // Windows Belgian overrides of lower: ` £, < >, ~, @, #, |, { }, [ ], backslash
+      bindings = <
+        &be_grv_pnd     &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &kp BE_LT       &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &kp BE_TILD     &trans          &kp BE_AT       &kp BE_HASH     &trans          &trans               &trans          &trans          &trans          &trans          &trans          &kp BE_PIPE
+        &trans          &trans          &trans          &trans          &kp BE_LBRC     &kp BE_RBRC     &trans          &trans          &kp BE_LBKT     &kp BE_RBKT     &trans          &trans          &kp BE_BSLH     &trans
+        &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      >;
+    };
+
     raise_layer {
       display-name = "raise";
       // ------------------------------------------------------------------------------------------------------------
@@ -179,6 +286,18 @@
       >;
 
       sensor-bindings = <&rot_none &inc_dec_kp C_VOL_DN C_VOL_UP>;
+    };
+
+    win_raise_layer {
+      display-name = "win raise";
+      // Windows Belgian overrides of raise: Ctrl instead of Cmd for undo/cut/copy/paste
+      bindings = <
+        &trans          &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &trans          &trans          &trans          &trans          &trans               &trans          &trans          &trans          &trans          &trans          &trans
+        &trans          &kp BE_UNDO     &kp BE_CUT      &kp BE_COPY     &kp BE_PASTE    &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans          &trans
+        &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      >;
     };
 
     adjust_layer {
@@ -211,6 +330,21 @@
       >;
 
       sensor-bindings = <&bt_rot &inc_dec_kp C_VOL_DN C_VOL_UP>;
+    };
+
+    rgbsel_layer {
+      display-name = "light";
+      // Active while the right encoder button is held: rotate the right encoder to dim/brighten
+      // the underglow. Double-tap the button to switch the underglow on/off.
+      bindings = <
+        &trans &trans &trans &trans &trans &trans                      &trans &trans &trans &trans &trans &trans
+        &trans &trans &trans &trans &trans &trans                      &trans &trans &trans &trans &trans &trans
+        &trans &trans &trans &trans &trans &trans                      &trans &trans &trans &trans &trans &trans
+        &trans &trans &trans &trans &trans &trans &trans   &trans &trans &trans &trans &trans &trans &trans
+        &trans &trans &trans &trans &trans &trans &trans &trans &trans &trans
+      >;
+
+      sensor-bindings = <&rot_none &rgb_brt>;
     };
   };
 };

@@ -281,7 +281,45 @@ Corne Choc Pro supports four encoder definitions:
 3. Previous/next media track
 4. Volume down/up
 
-Sofle Choc Pro uses the right encoder for volume (push to mute). The left
+Sofle Choc Pro uses the right encoder for volume. Its push button has three
+actions: tap to mute, double-tap to switch the underglow on/off, and hold
+(about half a second) while rotating to dim or brighten the underglow. With the
+underglow on, it turns off when the keyboard is idle and comes back on when you
+type; switched off, it stays off while typing. The left
 encoder selects the Bluetooth profile: hold its push button and rotate to
 switch to the previous/next profile, then release. Rotating the left encoder
 without holding the button does nothing.
+
+### Changing the number or order of layers
+
+Bindings saved on the keyboard (ZMK Studio) are stored by layer number and are
+applied on top of the compiled keymap. After flashing a keymap that inserts,
+removes, or reorders layers, use **Restore Stock Settings** in ZMK Studio or
+flash the `settings_reset` firmware (see [Resetting saved settings](#resetting-saved-settings)),
+otherwise saved bindings end up on the wrong layers. Adding a layer at the end
+of the keymap avoids this.
+
+## Sofle per-profile layout
+
+The Sofle keymap targets two host keyboard layouts and switches between them
+automatically with the Bluetooth profile:
+
+| Bluetooth profile | Host input source | Keymap layers |
+| --- | --- | --- |
+| 2 | Windows **Belgian (Period)** | `win`, `win lower`, `win raise` over the macOS layers |
+| 1, 3, 4, 5 | macOS **French** | `default`, `lower`, `raise` |
+
+Each Windows layer only overrides the keys that differ from macOS French
+(`@`, `#`, `{ }`, `[ ]`, `|`, `\`, `~`, `< >`, `` ` ``, and Ctrl instead of Cmd
+for undo/cut/copy/paste)
+and is otherwise transparent.
+
+The switch is done by a small module in this repository (`src/profile_layer.c`)
+that activates a layer while a given profile is selected. It is enabled in
+`config/sofle_choc_pro.conf`:
+
+```ini
+CONFIG_ZMK_PROFILE_LAYER=y
+CONFIG_ZMK_PROFILE_LAYER_PROFILE=1   # 0-based: 1 = profile 2 on the display
+CONFIG_ZMK_PROFILE_LAYER_LAYER=1     # the WIN layer
+```

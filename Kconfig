@@ -1,0 +1,19 @@
+config ZMK_PROFILE_LAYER
+	bool "Activate a keymap layer while a given Bluetooth profile is selected"
+	help
+	  Keeps ZMK_PROFILE_LAYER_LAYER active while Bluetooth profile
+	  ZMK_PROFILE_LAYER_PROFILE is selected, and inactive for every other
+	  profile. Only built on the central (left) half, which owns the
+	  Bluetooth profiles and the keymap.
+
+if ZMK_PROFILE_LAYER
+
+config ZMK_PROFILE_LAYER_PROFILE
+	int "Bluetooth profile index (0-based, BT_SEL value)"
+	default 1
+
+config ZMK_PROFILE_LAYER_LAYER
+	int "Keymap layer index to activate"
+	default 1
+
+endif
