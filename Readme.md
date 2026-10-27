@@ -227,6 +227,33 @@ reflashing their matching 5-column firmware because the hardware is the same.
 
 Settings-reset firmware is temporary and is not a usable keyboard firmware.
 
+## Bluetooth won't reconnect
+
+A Bluetooth pairing is stored on **both** the computer and the keyboard.
+Removing the keyboard on the computer deletes only the computer's copy; the
+keyboard profile still expects the old pairing and refuses the new one, so the
+computer reports that it couldn't connect. Clear that profile on the keyboard
+too, then pair again:
+
+1. On the keyboard, select the Bluetooth profile used by that computer.
+2. Press the Bluetooth clear key (`BT_CLR`). It clears only the selected
+   profile; the other profiles and their computers are not affected.
+3. On the computer, remove every entry for the keyboard in its Bluetooth
+   settings, then turn Bluetooth off and on again.
+4. With the same profile still selected, pair the keyboard from the computer.
+
+| Keymap | Select profile | Clear selected profile |
+| --- | --- | --- |
+| Sofle | Hold the left encoder button and rotate it | Hold Raise, press the top-left key |
+| Corne / Piantor 6-column | Hold Lower, press `A` `S` `D` `F` `G` (profiles 1-5) | Hold Lower, press `Z` |
+| Corne / Piantor 5-column | Hold `Delete`, press `W` `E` `R` `T` (profiles 1-4) | Hold `Delete`, press `Q` |
+
+If it still fails, restart the keyboard half that connects to the computer
+(the left, central half). On Windows, also check Device Manager > View > Show
+hidden devices > Bluetooth and uninstall any leftover entry for the keyboard
+before pairing again. As a last resort, use the settings-reset firmware above;
+it clears all pairings, so every computer must be paired again.
+
 ## Editing keymaps
 
 ### ZMK Keymap Editor
